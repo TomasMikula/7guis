@@ -3,10 +3,13 @@ package sevenguis.cells;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.DoubleBinding;
 import javafx.beans.binding.ObjectBinding;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ObservableDoubleValue;
+import javafx.beans.value.ObservableObjectValue;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableArray;
@@ -48,13 +51,16 @@ class Model {
 
     class Cell {
 
+        private final BooleanProperty showUserData = new SimpleBooleanProperty(false);
         public final StringProperty userData = new SimpleStringProperty("");
-        public final StringProperty text = new SimpleStringProperty("");
+        public ObservableValue<Double> value = EasyBind.map(userData, Parser::parse)
+                .flatMap(f -> Bindings.createObjectBinding(() -> f.eval(Model.this), toArray(f.getReferences(Model.this))));
+        public final ObjectBinding<String> text = Bindings.when(showUserData)
+                .then((ObservableObjectValue<String>) userData)
+                .otherwise(EasyBind.map(value, String::valueOf));
         ObservableValue<Double>[] toArray(List<ObservableValue<Double>> l) {
               return l.toArray(new ObservableValue[l.size()]);
         }
-        public ObservableValue<Double> value = EasyBind.map(userData, Parser::parse)
-                .flatMap(f -> Bindings.createObjectBinding(() -> f.eval(Model.this), toArray(f.getReferences(Model.this))));
         // Has same problem
 //        public ObservableDoubleValue value =
 //                Bindings.createDoubleBinding(() -> {
@@ -72,8 +78,7 @@ class Model {
 
 
         public void setShowUserData(Boolean b) {
-            if (b)  text.setValue(userData.get());
-            else text.setValue(String.valueOf(value.getValue()));
+            showUserData.set(b);
         }
 
     }
